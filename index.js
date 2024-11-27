@@ -4,8 +4,11 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const mongoose = require('mongoose'); // Import mongoose
-const Tender = require('./tenderModel'); // Import the Mongoose model
-const { spawn } = require('child_process');
+
+const Tender = require('./models/tenderModel'); // Import the Mongoose model
+
+const dashboardRoutes = require('./routers/dashboard');
+const userRoutes = require('./routers/userRoutes');
 
 const app = express();
 
@@ -28,13 +31,17 @@ app.use(function (req, res, next) {
 app.use(limiter);
 app.use(express.json()); // Middleware to parse JSON requests
 app.use(cors({
-    origin: '*', // Replace with your frontend URL
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Allow credentials to be included in requests
+    origin: "*", // Allow multiple origins if provided
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'], // Allowed methods
+    credentials: true, // Allow credentials in requests
+    allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
+    exposedHeaders: ['Authorization'], // Headers exposed to the browser
 }));
+
 
 // MongoDB connection
 const mongoUri = process.env.mongoUri; // MongoDB connection string
+const port = process.env.PORT || 4000; // Port to run the server
 
 const connectToMongoDB = async () => {
     try {
@@ -43,7 +50,11 @@ const connectToMongoDB = async () => {
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-        });
+        }).then(() => {
+            app.listen(port, () => {
+                console.log(`Server is running on port ${port}`);
+            });
+        })
         console.log('MongoDB connected successfully');
     } catch (err) {
         console.error('MongoDB connection error:', err);
@@ -64,8 +75,8 @@ mongoose.connection.on('disconnected', () => {
 const router = express.Router();
 
 // Utility function to handle errors in async routes
-const asyncHandler = (fn) => (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+// const asyncHandler = (fn) => (req, res, next) =>
+//     Promise.resolve(fn(req, res, next)).catch(next);
 
 // Search Tenders API
 router.get('/search-tenders', async (req, res) => {
@@ -98,62 +109,17 @@ router.get('/search-tenders', async (req, res) => {
     }
 });
 
-// Run the crawler
-router.get('/run-crawler', async (req, res) => {
-    const pythonProcess = spawn('python', ['crawler.py'], {timeout: 3000000});
-    let outputData = '';
+// Differentiating Routes
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/user', userRoutes);
 
-    pythonProcess.stdout.on('data', (data) => {
-        outputData += data.toString();
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ 
+        success: false,
+        error: 'Internal Server Error' 
     });
-
-    pythonProcess.stderr.on('data', (data) => {
-        console.error(`Error: ${data}`);
-    });
-
-    pythonProcess.on('close', async (code) => {
-        console.log(`Python script finished with code ${code}`);
-        if (code === 0) {
-            try {
-                const tenders = JSON.parse(outputData);
-                res.json(tenders);
-            } catch (error) {
-                console.error(`Failed to parse output: ${error}`);
-                res.status(500).send('Failed to parse Python script output');
-            }
-        } else {
-            res.status(500).send('Python script exited with an error');
-        }
-    });
-});
-
-// Get all tenders with pagination, sorting, and limiting
-router.get('/all-tenders', asyncHandler(async (req, res) => {
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1); // Default to 1
-    const quantity = Math.max(1, parseInt(req.query.quantity, 10) || 20); // Default to 10
-    const sorting = req.query.sorting === 'desc' ? -1 : 1; // Determine sorting order
-    const sortBy = req.query.sortBy || 'tender_title'; // Default sort field
-
-    const allTenders = await Tender.find()
-        .skip((page - 1) * quantity)
-        .limit(quantity)
-        .sort({ [sortBy]: sorting });
-
-    if (allTenders.length === 0) {
-        return res.status(404).json({ message: 'No tenders found.' });
-    }
-
-    console.log(`Retrieved ${allTenders.length} tenders from page ${page}.`);
-    res.json(allTenders);
-}));
-
-// Use the router
-app.use('/api', router);
-
-// Start the server
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
 });
 
 // Connect to MongoDB
