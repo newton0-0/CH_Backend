@@ -9,13 +9,14 @@ const Tender = require('./models/tenderModel'); // Import the Mongoose model
 
 const dashboardRoutes = require('./routers/dashboard');
 const userRoutes = require('./routers/userRoutes');
+const adminRoutes = require('./routers/adminRoutes');
 
 const app = express();
 
 // Apply rate limiting middleware
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 100000, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
 });
 
@@ -30,8 +31,20 @@ app.use(function (req, res, next) {
 
 app.use(limiter);
 app.use(express.json()); // Middleware to parse JSON requests
+
+// Middleware to log cross-origin requests
+app.use((req, res, next) => {
+    if (req.headers.origin) { // Check if the request has an origin header (indicates cross-origin)
+        console.log(`[CORS] Cross-Origin Request Detected: 
+        Origin: ${req.headers.origin}, 
+        Method: ${req.method}, 
+        Path: ${req.path}`);
+    }
+    next(); // Pass the request to the next middleware
+});
+
 app.use(cors({
-    origin: "*", // Allow multiple origins if provided
+    origin: "*",
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'], // Allowed methods
     credentials: true, // Allow credentials in requests
     allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
@@ -78,40 +91,10 @@ const router = express.Router();
 // const asyncHandler = (fn) => (req, res, next) =>
 //     Promise.resolve(fn(req, res, next)).catch(next);
 
-// Search Tenders API
-router.get('/search-tenders', async (req, res) => {
-    const { search, page = 1, quantity = 10, sorting = 'asc', sortBy = 'tender_title' } = req.query;
-
-    try {
-        // Build the search query based on the search value
-        const searchQuery = {
-            $or: [
-                { tender_title: { $regex: search, $options: 'i' } },
-                { tender_reference_number: { $regex: search, $options: 'i' } },
-                { tender_id: { $regex: search, $options: 'i' } }
-            ]
-        };
-
-        // Retrieve tenders with pagination, sorting, and limiting
-        const tenders = await Tender.find(searchQuery)
-            .skip((page - 1) * quantity)
-            .limit(parseInt(quantity))
-            .sort({ [sortBy]: sorting === 'asc' ? 1 : -1 });
-
-        if (tenders.length === 0) {
-            return res.status(404).json({ message: 'No tenders found matching your search.' });
-        }
-
-        res.json(tenders);
-    } catch (error) {
-        console.error('Error searching tenders:', error);
-        res.status(500).json({ error: 'Server error while searching tenders.' });
-    }
-});
-
 // Differentiating Routes
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

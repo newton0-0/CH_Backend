@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 
 // make jwt token
 async function tokenMaker(user) {
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN
     });
     return token;
@@ -96,7 +96,8 @@ userSchema.statics.login = async function(email, password) {
     if (!isValid) {
         throw new Error('Invalid password');
     }
-    if (user.approvedBy) {
+    
+    if (user.approvedBy === null) {
         throw new Error('User is not approved for use yet');
     }
     const token = await tokenMaker(user);

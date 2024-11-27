@@ -55,4 +55,34 @@ const highlightTenders = async (req, res) => {
         }})
 };
 
-module.exports = {allTenders, highlightTenders};
+const searchTenders = async (req, res) => {
+    const { search, page = 1, quantity = 10, sorting = 'asc', sortBy = 'tender_title' } = req.query;
+
+    try {
+        // Build the search query based on the search value
+        const searchQuery = {
+            $or: [
+                { tender_title: { $regex: search, $options: 'i' } },
+                { tender_reference_number: { $regex: search, $options: 'i' } },
+                { tender_id: { $regex: search, $options: 'i' } }
+            ]
+        };
+
+        // Retrieve tenders with pagination, sorting, and limiting
+        const tenders = await Tender.find(searchQuery)
+            .skip((page - 1) * quantity)
+            .limit(parseInt(quantity))
+            .sort({ [sortBy]: sorting === 'asc' ? 1 : -1 });
+
+        if (tenders.length === 0) {
+            return res.status(404).json({ message: 'No tenders found matching your search.' });
+        }
+
+        res.json(tenders);
+    } catch (error) {
+        console.error('Error searching tenders:', error);
+        res.status(500).json({ error: 'Server error while searching tenders.' });
+    }
+}
+
+module.exports = {allTenders, highlightTenders, searchTenders};

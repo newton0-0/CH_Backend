@@ -13,7 +13,8 @@ const {
     removeTenderFromWishlist,
     getUserComparison,
     addTenderToComparison,
-    removeTenderFromComparison
+    removeTenderFromComparison,
+    removeAllTendersFromComparison
 } = require('../controllers/userController');
 
 dotenv.config(); // Load environment variables
@@ -54,9 +55,10 @@ router.get('/verify-token', asyncHandler(verifyToken));
 // Protected routes (authentication required)
 router.get('/user-wishlist', authenticateToken, asyncHandler(getUserWishlist));
 router.get('/add-to-wishlist', authenticateToken, asyncHandler(addTenderToWishlist));
-router.delete('/remove-from-wishlist', authenticateToken, asyncHandler(removeTenderFromWishlist));
+router.get('/remove-from-wishlist', authenticateToken, asyncHandler(removeTenderFromWishlist));
 router.get('/user-comparison', authenticateToken, asyncHandler(getUserComparison));
 router.get('/add-to-comparison', authenticateToken, asyncHandler(addTenderToComparison));
 router.get('/remove-from-comparison', authenticateToken, asyncHandler(removeTenderFromComparison));
+router.get('/remove-all-from-comparison', authenticateToken, asyncHandler(removeAllTendersFromComparison));
 
 module.exports = router;
