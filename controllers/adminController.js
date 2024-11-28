@@ -1,4 +1,6 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+
 const User = require('../models/UserModel');
 const Tender = require('../models/tenderModel');
 
@@ -60,35 +62,62 @@ const rejectUser = async (req, res) => {
 
 const hideTender = async (req, res) => {
     try {
-        const tender = await Tender.findById(req.params.tenderId);
+        // Extract tenderId from params or query
+        const tenderId = req.params.tenderId || req.query.tenderId;
+
+        // Validate tenderId
+        if (!tenderId || !mongoose.Types.ObjectId.isValid(tenderId)) {
+            return res.status(400).json({ message: 'Invalid or missing tenderId' });
+        }
+
+        // Find the tender by ID
+        const tender = await Tender.findById(tenderId);
         if (!tender) {
             return res.status(404).json({ message: 'Tender not found' });
         }
+
+        // Hide the tender
         tender.hidden = true;
-        await tender.save();
+        await tender.save().catch((err) => {
+            return res.status(500).json({ message: 'Server error: ' + err.message });
+        });
+
         res.status(200).json({ message: 'Tender hidden successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error: ' + error.message });
     }
-}
+};
 
 const searchUser = async (req, res) => {
-    const search = req.params.search;
+    const search = req.query.search || req.params.search;
+
+    if (!search) {
+        return res.status(400).json({ message: 'Search term is required' });
+    }
 
     try {
-        const users = await User.find({
-            $or: [
-                { name: { $regex: search, $options: 'i' } },
-                { empId: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
-            ],
-            approvedBy: { $ne: null }
-        });
+        const users = await User.find(
+            {
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { empId: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ],
+                approvedBy: { $ne: null }
+            },
+            'name empId email' // Only return relevant fields
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'No users found' });
+        }
+
         res.status(200).json(users);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error(error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
-}
+};
 
 module.exports = {
     unapprovedUsers,
