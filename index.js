@@ -5,8 +5,6 @@ const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const mongoose = require('mongoose'); // Import mongoose
 
-const Tender = require('./models/tenderModel'); // Import the Mongoose model
-
 const dashboardRoutes = require('./routers/dashboard');
 const userRoutes = require('./routers/userRoutes');
 const adminRoutes = require('./routers/adminRoutes');
@@ -44,7 +42,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-    origin: "*",
+    origin: process.env.ALLOWED_ORIGIN || "*",
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'], // Allowed methods
     credentials: true, // Allow credentials in requests
     allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
