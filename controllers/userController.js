@@ -411,6 +411,7 @@ const removeAllTendersFromComparison = async (req, res) => {
 };
 
 const saveSms = async (req, res) => {
+    console.log("SMS Req Body:", req.body);
     try {
         const sms = await SmsModel.save(req.body);
         if (!sms) {
