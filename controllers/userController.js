@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/UserModel');
+const SmsModel = require('../models/smsModel');
 
 // make jwt token
 async function tokenMaker(user) {
@@ -409,6 +410,18 @@ const removeAllTendersFromComparison = async (req, res) => {
     }
 };
 
+const saveSms = async (req, res) => {
+    try {
+        const sms = await SmsModel.save(...req.body);
+        if (!user) {
+            return res.status(404).json({ message: 'SMS not saved' });
+        }
+        res.status(200).json({ message: 'SMS saved successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error saving SMS' });
+    }
+};
+
 
 module.exports = {
     userLogin, 
@@ -421,5 +434,6 @@ module.exports = {
     addTenderToComparison,
     removeTenderFromComparison,
     removeAllTendersFromComparison,
-    decodeToken
+    decodeToken,
+    saveSms
 };

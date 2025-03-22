@@ -42,7 +42,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-    origin: process.env.ALLOWED_ORIGIN || "*",
+    origin: "*",
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'], // Allowed methods
     credentials: true, // Allow credentials in requests
     allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers

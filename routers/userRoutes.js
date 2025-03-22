@@ -14,7 +14,8 @@ const {
     getUserComparison,
     addTenderToComparison,
     removeTenderFromComparison,
-    removeAllTendersFromComparison
+    removeAllTendersFromComparison,
+    saveSms
 } = require('../controllers/userController');
 
 dotenv.config(); // Load environment variables
@@ -60,5 +61,8 @@ router.get('/user-comparison', authenticateToken, asyncHandler(getUserComparison
 router.get('/add-to-comparison', authenticateToken, asyncHandler(addTenderToComparison));
 router.get('/remove-from-comparison', authenticateToken, asyncHandler(removeTenderFromComparison));
 router.get('/remove-all-from-comparison', authenticateToken, asyncHandler(removeAllTendersFromComparison));
+
+// External use routes
+router.post('/save-sms', asyncHandler(saveSms));
 
 module.exports = router;
