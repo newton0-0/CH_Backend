@@ -413,7 +413,7 @@ const removeAllTendersFromComparison = async (req, res) => {
 const saveSms = async (req, res) => {
     try {
         const sms = await SmsModel.save(...req.body);
-        if (!user) {
+        if (!sms) {
             return res.status(404).json({ message: 'SMS not saved' });
         }
         res.status(200).json({ message: 'SMS saved successfully' });
