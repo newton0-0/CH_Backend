@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/UserModel');
-const SmsModel = require('../models/smsModel');
+const SmsModel = require('../models/SmsModel');
 
 // make jwt token
 async function tokenMaker(user) {
@@ -412,7 +412,7 @@ const removeAllTendersFromComparison = async (req, res) => {
 
 const saveSms = async (req, res) => {
     try {
-        const sms = await SmsModel.save(...req.body);
+        const sms = await SmsModel.save(req.body);
         if (!sms) {
             return res.status(404).json({ message: 'SMS not saved' });
         }
