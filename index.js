@@ -55,23 +55,29 @@ const mongoUri = process.env.mongoUri; // MongoDB connection string
 const port = process.env.PORT || 4000; // Port to run the server
 
 const connectToMongoDB = async () => {
-    try {
+    const maxRetries = 5;
+    const retryDelay = 5000; // 5 seconds
+  
+    for (let i = 0; i < maxRetries; i++) {
+      try {
         await mongoose.connect(mongoUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
-        }).then(() => {
-            app.listen(port, () => {
-                console.log(`Server is running on port ${port}`);
-            });
-        })
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 45000,
+        });
         console.log('MongoDB connected successfully');
-    } catch (err) {
-        console.error('MongoDB connection error:', err);
-        process.exit(1); // Exit the process if the connection fails
+        return;
+      } catch (err) {
+        console.error(`MongoDB connection error (attempt ${i + 1}/${maxRetries}):`, err);
+        if (i < maxRetries - 1) {
+          console.log(`Retrying in ${retryDelay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        } else {
+          console.error('Failed to connect to MongoDB after', maxRetries, 'retries');
+          process.exit(1); // Exit the process if all retries fail
+        }
+      }
     }
-};
+  };
 
 // Handle MongoDB connection errors and reconnections
 mongoose.connection.on('error', (err) => {
